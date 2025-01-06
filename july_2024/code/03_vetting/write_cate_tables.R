@@ -60,10 +60,6 @@ c6 <- get_cate(
   c("index", "year", "match_age"), "5y_lookback", "personal"
 )
 
-# cfact_data <- get_match_time_series('data/analysis/01_matching/02_matched/dbcg/per_ind/2024-05-25/m13',
-#                                     'dbcg','dbcg_dx_yr','per_ind',10,1,deaths_as_0 = FALSE,agg = TRUE,prematch = FALSE)
-# fwrite(cfact_data,'data/analysis/01_matching/03_cate/dbcg/per_ind/2024-05-25/m00.csv')
-
 c7 <- get_cate(
   paste0(cate_dir, "m00.csv"),
   c("index", "pre_socio", "edu", "fam_size", "familie_type", "per_inc_qt", "match_age", "year"),

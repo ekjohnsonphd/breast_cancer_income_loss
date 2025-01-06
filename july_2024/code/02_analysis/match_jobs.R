@@ -16,7 +16,6 @@ treatment_match_var <- paste0(treatment_var, "_match_df")
 outcome_var <- "fam_ind"
 
 model_dir <- paste0("data/analysis/01_matching/02_matched/", treatment_var, "/", outcome_var, "/", Sys.Date(), "/")
-# model_dir <- paste0('data/analysis/01_matching/02_matched/',treatment_var,'/',outcome_var,'/2024-05-16/')
 
 year_set <- data.table(
   cause = c("dbcg", "ddd", "dap", "nab"),

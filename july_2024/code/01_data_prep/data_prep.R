@@ -6,9 +6,6 @@ names(edu_coding) <- edu$hfaudd
 load("data/supplemental_inputs/regions.RData")
 regs$kom <- as.character(regs$kom)
 
-# edu_coding <- edu$edu_desc
-# names(edu_coding) <- edu$hfaudd
-
 sex_coding <- c("male", "female")
 names(sex_coding) <- c(1, 2)
 
