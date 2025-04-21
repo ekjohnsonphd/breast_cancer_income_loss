@@ -1,18 +1,20 @@
-# Functions used to apply matching methods to data
-
-# Match functions --------------------------------------------------------------------------
+# Matching analysis functions: apply matching, process time series, and calculate ATT
 
 # flexible matching model which runs matching along age groups and year
-run_matches <- function(match_type, distance_type = NA, eqn = NA, data, c_ratio = 5, name = Sys.time(),
+# run MatchIt on one year of data using fixed age/sex/year strata
+run_matches <- function(match_type, distance_type = NA, eqn = NA, data,
+                        c_ratio = 5, name = Sys.time(),
                         model_dir) {
   stopifnot(length(unique(data$year)) == 1)
   form <- as.formula(eqn)
 
+  # Prepare formula and run matching
   mt <- matchit(form,
     method = match_type, distance = distance_type, ratio = c_ratio, data = data,
     exact = c("age_group", "year", "sex"), estimand = "ATT"
   )
 
+  # Extract matched dataset
   dt <- data.table(match.data(mt))
   dt[, match_yr := unique(data$year)]
 
@@ -26,22 +28,20 @@ run_matches <- function(match_type, distance_type = NA, eqn = NA, data, c_ratio 
     distinct() %>%
     group_by(year) %>%
     write_dataset(paste0(model_dir, "/", name))
+  
+  return()
 }
 
+# generate counterfactual years after death for ATT estimation
 deaths_fcn <- function(df, follow_up_length, lookback) {
-  # load('data/supplemental_inputs/life_expectancy.RData')
 
   # get deaths - pull people below LE and get the last year they're in the data
-  # deaths <- df[year == yod-1,.(pid, treat, match_yr, alder, match_age,
-  #                                      sex, subclass, sbc, yod, aod, treat_yr, year)]
   deaths <- df[year == yod - 1]
-  # deaths <- merge(deaths, life_expectancy, by.x = c('sex','alder','match_yr'),
-  #                 by.y = c('sex','alder','year'), all.x = TRUE)
   deaths[, indhold := 65]
   deaths <- deaths[aod < indhold]
   deaths[, alder := NULL][, year := NULL][, dead := NULL][, outcome := NULL]
 
-  # create table of possible years to observe depending on year of death
+  # Create follow-up years
   lost_years <- data.table(
     yod = unlist(lapply(2000:2018, function(x) rep(x, 18))),
     year = 2000:2018, outcome = 0, dead = 1
@@ -53,7 +53,6 @@ deaths_fcn <- function(df, follow_up_length, lookback) {
   # apply LE to hypothetical years - assume they only live to set LE (2015 LE)
   deaths <- deaths[year <= (indhold - aod) + yod]
 
-
   # fix index of death years
   deaths[, index := year - (match_yr + lookback)]
   deaths <- deaths[index < follow_up_length]
@@ -63,11 +62,14 @@ deaths_fcn <- function(df, follow_up_length, lookback) {
   return(df)
 }
 
-get_match_time_series <- function(match_dir, treatment_var, treatment_year, outcome_var, follow_up_length = 10,
-                                  lookback, deaths_as_0 = FALSE, agg = TRUE, prematch = FALSE) {
+# merge matched data with outcomes and build time series
+get_match_time_series <- function(match_dir, treatment_var, treatment_year, outcome_var, 
+                                   follow_up_length = 10, lookback, 
+                                   deaths_as_0 = FALSE, agg = TRUE, prematch = FALSE) {
   df <- open_dataset("data/analysis/01_matching/01_pre_match") %>%
     select(pid, year,
-      outcome = all_of(outcome_var), treat_yr = all_of(treatment_year),
+      outcome = all_of(outcome_var), 
+      treat_yr = all_of(treatment_year),
       alder, yod, aod
     ) %>%
     collect() %>%
@@ -78,12 +80,13 @@ get_match_time_series <- function(match_dir, treatment_var, treatment_year, outc
   match_vars <- all.vars(as.formula(model_matrix[index == model_num]$eq_set))
   match_vars <- setdiff(match_vars, c("age_group", "sex", "treat"))
 
-  match_data_all <- lapply(Sys.glob(paste0(match_dir, "/*")), function(y_match_dir) {
-    print(y_match_dir)
+  match_data_all <- lapply(Sys.glob(paste0(match_dir, "/*")), 
+                           function(y_match_dir) {
     match_data <- open_dataset(y_match_dir) %>%
       select(
         pid, match_yr, subclass, match_age, sex, treat,
-        per_inc_qt, fam_inc_qt, familie_type, fam_size, edu, pre_socio, reg, cci, starts_with("dx_")
+        per_inc_qt, fam_inc_qt, familie_type, fam_size, edu, pre_socio,
+        reg, cci, starts_with("dx_")
       ) %>%
       collect() %>%
       setDT()
@@ -92,10 +95,10 @@ get_match_time_series <- function(match_dir, treatment_var, treatment_year, outc
     match_data[, retired := 0]
     match_data[str_detect(pre_socio, "retire"), retired := 1]
 
-    # print('merging')
+    # merging with outcomes
     match_data <- merge(match_data, df, by = c("pid"), all.x = TRUE, allow.cartesian = TRUE)
 
-    # creating index - starts at 0 for dx year (year of matching + # years back matching happened before index)
+    # creating index - starts at 0 for dx year 
     match_data[, index := year - (match_yr + lookback)]
 
     # restrict follow up length
@@ -109,9 +112,12 @@ get_match_time_series <- function(match_dir, treatment_var, treatment_year, outc
 
     if (deaths_as_0) match_data <- deaths_fcn(match_data, follow_up_length, lookback)
 
-    # some people are matched as controls then get diagnosed later. Censoring years of observation
-    # after diagnosis
-    match_data <- match_data[treat == 1 | treat == 0 & is.na(treat_yr) | treat == 0 & year < treat_yr]
+    # some people are matched as controls then get diagnosed later. Censoring 
+    # years of observation after diagnosis
+    match_data <- match_data[treat == 1 | 
+      (treat == 0 & is.na(treat_yr)) | 
+      (treat == 0 & year < treat_yr)
+    ]
 
     match_data <- match_data[!is.na(outcome)]
 
@@ -134,7 +140,8 @@ get_match_time_series <- function(match_dir, treatment_var, treatment_year, outc
       match_data <- match_data[!is.na(outcome_treat)]
 
       match_data[, cate := outcome_control - outcome_treat]
-      match_data[, cate_var := s_var_control / n_control + s_var_treat / n_treat]
+      match_data[, cate_var := s_var_control / n_control + 
+        s_var_treat / n_treat]
     }
     return(match_data)
   }) %>% rbindlist()
@@ -143,15 +150,17 @@ get_match_time_series <- function(match_dir, treatment_var, treatment_year, outc
   return(match_data_all)
 }
 
-# ATT function
+# compute average treatment effects and standard errors
 calculate_att <- function(df, groupings = NULL) {
   df <- df[!is.na(outcome_control)]
   df[, dummy := 1]
   df <- df[, .(
     att = weighted.mean(cate, w = n_treat),
     se = sqrt(sum((n_treat / sum(n_treat))^2 * cate_var)),
-    n_treat = sum(n_treat), n_control = sum(n_control),
-    n_dead_treat = sum(n_dead_treat), n_dead_control = sum(n_dead_control),
+    n_treat = sum(n_treat), 
+    n_control = sum(n_control),
+    n_dead_treat = sum(n_dead_treat), 
+    n_dead_control = sum(n_dead_control),
     outcome_control = weighted.mean(outcome_control, w = n_treat),
     outcome_treat = weighted.mean(outcome_treat, w = n_treat)
   ),
@@ -159,10 +168,14 @@ calculate_att <- function(df, groupings = NULL) {
   ]
 
   df <- df[, .(
-    att = sum(att, na.rm = TRUE), se = sqrt(sum(se^2)),
-    n_treat = max(n_treat), n_control = max(n_control),
-    n_dead_treat = max(n_dead_treat), n_dead_control = max(n_dead_control),
-    outcome_control = sum(outcome_control), outcome_treat = sum(outcome_treat)
+    att = sum(att, na.rm = TRUE), 
+    se = sqrt(sum(se^2)),
+    n_treat = max(n_treat), 
+    n_control = max(n_control),
+    n_dead_treat = max(n_dead_treat), 
+    n_dead_control = max(n_dead_control),
+    outcome_control = sum(outcome_control), 
+    outcome_treat = sum(outcome_treat)
   ),
   by = c(groupings, "dummy")
   ]
@@ -172,5 +185,6 @@ calculate_att <- function(df, groupings = NULL) {
   df[, pct := att / outcome_control]
   df[, dummy := NULL]
   df <- unique(df)
+  
   return(df)
 }

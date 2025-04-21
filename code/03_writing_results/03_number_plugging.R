@@ -1,58 +1,74 @@
+## Script to produce statistics for paper on income loss after breast cancer
+# Clear environment
 rm(list = ls())
 gc()
 source("code/environment_setup.R")
 source("code/02_analysis/match_functions.R")
 
 ## Data and setup ------------------------------------------
+# Format median and IQR for display
 med_iqr <- function(x) {
-  return(paste0(round(median(x)), " (", round(quantile(x, 0.25)), " - ", round(quantile(x, 0.75)), ")"))
+  return(paste0(
+    round(median(x)), " (", round(quantile(x, 0.25)),
+    " - ", round(quantile(x, 0.75)), ")"
+  ))
 }
 
+# Format ATT result for display
 format_results <- function(x) {
   return(paste0(round(x$att), " (", round(x$lower), " - ", round(x$upper), ")"))
 }
 
+# Load baseline dataset
 df <- open_dataset("data/analysis/01_matching/01_pre_match") %>%
   collect() %>%
   setDT()
 
-model_info_per <- fread("data/analysis/01_matching/02_matched/dbcg/per_ind/2024-05-25/model_comparisons_10y.csv")
-match_df_per <- open_dataset("data/analysis/01_matching/02_matched/dbcg/per_ind/2024-05-25/m13") %>%
+# Load personal income model and matched data
+model_info_per <- fread("model_comparisons_10y.csv")
+match_df_per <- open_dataset("02_matched/dbcg/per_ind/2024-05-25/m13") %>%
   collect() %>%
   setDT()
-cate_df_per <- fread("data/analysis/01_matching/03_cate/dbcg/per_ind/2024-05-25/m13.csv")
+cate_df_per <- fread("03_cate/dbcg/per_ind/2024-05-25/m13.csv")
 cate_df_per[, retired := 0]
 cate_df_per[str_detect(pre_socio, "retire"), retired := 1]
-
-cate_df_per_deaths_cfactual <- get_match_time_series("data/analysis/01_matching/02_matched/dbcg/per_ind/2024-05-25/m13",
-  treatment_var = "dbcg", treatment_year = "dbcg_dx_yr", outcome_var = "per_ind",
-  follow_up_length = 10, lookback = 1, deaths_as_0 = FALSE, agg = TRUE, prematch = FALSE
+# Create counterfactual time series including years after death
+cate_df_per_deaths_cfactual <- get_match_time_series(
+  "02_matched/dbcg/per_ind/2024-05-25/m13",
+  treatment_var = "dbcg", treatment_year = "dbcg_dx_yr",
+  outcome_var = "per_ind",
+  follow_up_length = 10, lookback = 1, deaths_as_0 = FALSE,
+  agg = TRUE, prematch = FALSE
 )
 cate_df_per_deaths_cfactual[, retired := 0]
 cate_df_per_deaths_cfactual[str_detect(pre_socio, "retire"), retired := 1]
-
-model_info_fam <- fread("data/analysis/01_matching/02_matched/dbcg/fam_ind/2024-05-25/model_comparisons_10y.csv")
-match_df_fam <- open_dataset("data/analysis/01_matching/02_matched/dbcg/fam_ind/2024-05-25/m10") %>%
+# Load household income model and matched data
+model_info_fam <- fread("02_matched/dbcg/fam_ind/2024-05-25/model_comparisons_10y.csv")
+match_df_fam <- open_dataset("02_matched/dbcg/fam_ind/2024-05-25/m10") %>%
   collect() %>%
   setDT()
-cate_df_fam <- fread("data/analysis/01_matching/03_cate/dbcg/fam_ind/2024-05-25/m10.csv")
+cate_df_fam <- fread("03_cate/dbcg/fam_ind/2024-05-25/m10.csv")
 cate_df_fam[, retired := 0]
 cate_df_fam[str_detect(pre_socio, "retire"), retired := 1]
-
+# Initialize results list
 results <- list()
 
 ## Intro ----------------------------------------------------
+ # Sample size statistics
 # total sample size
 results["total sample size"] <- length(unique(df$pid))
 
 ## Results - descriptives ----------------------------------------------------
+# Descriptive statistics
 ## 6 total stats
 
 # total dbcg sample size
-results["breast cancer sample size"] <- nrow(df[year == dbcg_dx_yr & year %in% 1999:2014])
+results["breast cancer sample size"] <- nrow(df[year == dbcg_dx_yr &
+                                                  year %in% 1999:2014])
 
 # total person-years of data
-pyears <- count(df[year %in% 2000:2018 & (is.na(dbcg_dx_yr) | dbcg_dx_yr < 2014)], pid)
+pyears <- count(df[year %in% 2000:2018 &
+                     (is.na(dbcg_dx_yr) | dbcg_dx_yr < 2014)], pid)
 results["total person years"] <- sum(pyears$n)
 
 # person years per individual
@@ -62,13 +78,12 @@ results["pyears per person"] <- round(mean(pyears$n), 1)
 dbcg <- df[year == dbcg_dx_yr & year %in% 2000:2014]
 results["breast cancer age"] <- med_iqr(dbcg$alder)
 
-# ggplot(dbcg) + geom_histogram(aes(x = alder))
-
 # median incomes
 results["median personal income"] <- med_iqr(df[year %in% 2000:2018]$per_ind)
 results["median hhold income"] <- med_iqr(df[year %in% 2000:2018]$fam_ind)
 
 ## Results - match metadata ----------------------------------------------------
+ # Matching diagnostics
 ## 9 total stats
 
 match_df_per[, sbc := .GRP, by = c("subclass", "match_yr")]
@@ -91,6 +106,7 @@ results["hhold income small group percentage"] <- 100 * nrow(group_df_fam[n < 5]
 results["hhold income median group size"] <- median(group_df_fam$n)
 
 ## Results - income loss and subgroups ----------------------------------------------------
+# ATT estimates and subgroup analyses
 ## 22 total stats
 
 cp <- calculate_att(cate_df_per)
@@ -104,11 +120,6 @@ ch_nr <- calculate_att(cate_df_fam, "retired")[retired == 0]
 
 results["10 year nonretired personal income loss"] <- format_results(cp_nr)
 results["10 year nonretired hhold income loss"] <- format_results(ch_nr)
-
-# TODO must add uncertainty
-results["total personal income loss whole population"] <- cp$att * cp$n_treat
-results["total hhold income loss whole population"] <- ch$att * ch$n_treat
-
 
 med_per <- median(df[year %in% 2000:2018]$per_ind)
 med_fam <- median(df[year %in% 2000:2018]$fam_ind)
@@ -161,4 +172,5 @@ results["personal income loss age 18-29"] <- format_results(cp_age[match_age == 
 results["personal income loss age 60-64"] <- format_results(cp_age[match_age == "60to64"])
 
 ## write all results
+# Export all results to CSV
 fwrite(data.table(result = names(results), value = results), "data/paper1/paper1_results.csv")
