@@ -44,10 +44,11 @@ CATE estimation (e.g. censoring deaths vs. imputing years after death as years o
 ### `code/03_writing_results/`
 - **Purpose**: Scripts for specific outputs and tables used in the manuscript.
 - **Details**:
-  - `paper1_results.R`: Computes the point estimates and tables referenced in the text.
-  - `table1_descriptives.R`: Generates baseline descriptive statistics for the population and DBCG group.
-  - `lifepatterns_after_matching.R`: Plots longitudinal trajectories of covariates post-matching.
-  - `summarize_cate_outputs.R`: Aggregates and formats heterogeneous treatment effects for subgroups.
+  - `01_write_cate_tables.R`: Produces all estimates for the main and secondary analyses used in the paper, which are saved in the file `data/heterogeneous_effects.csv`. 
+  - `02_table1.R`: Produces descriptive statistics about the exposed and control populations for the analysis, using a sample year of data.
+  - `03_number_plugging.R`: Produces all statistical estimates presented in the Results section of the paper, including match group characteristics, income losses, and 
+  heterogeneous effects.
+  - `04_paper_plots_and_tables.R`: Produces all tables and figures used in the main text and supplementary materials for this publication.
 
 ---
 
@@ -55,7 +56,8 @@ CATE estimation (e.g. censoring deaths vs. imputing years after death as years o
 
 This repository does not contain input data due to privacy restrictions. All analysis is based on Danish register data accessed through secure servers. More information on accessing 
 Danish register data for research (given affiliation with a Danish research institution) can be found at https://www.dst.dk/da/TilSalg/data-til-forskning. 
-Output data from `03_writing_results/01_write_cate_tables.R` and `02_analysis/did.R` is included in the `data` folder.
+Output data from `03_writing_results/01_write_cate_tables.R`, `03_writing_results/02_table1.R`, and `02_analysis/did.R` is included in the `data` folder, and could be used with the script 
+`04_paper_plots_and_tables.R` to recreate all figures and tables.
 
 ---
 
