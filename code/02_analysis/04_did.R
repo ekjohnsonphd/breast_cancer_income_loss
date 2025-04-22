@@ -24,7 +24,7 @@ follow_up_yrs <- 10
 
 # Define directory for matched data
 model_dir <- paste0(
-  "data/analysis/01_matching/02_matched/", treatment_var,
+  "data/analysis/01_matching/02_matched/dbcg",
   "/", outcome_var, "/2024-05-25/"
 )
 
@@ -69,4 +69,3 @@ smry_perf <- glance(smry) %>%
 
 # Save coefficients and model fit statistics to CSV
 fwrite(smry_coefs, "data/paper1/did_coefficients.csv")
-fwrite(smry_perf, "data/paper1/did_perf.csv")

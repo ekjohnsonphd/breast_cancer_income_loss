@@ -40,5 +40,5 @@ sumdf <- rbind(
 st(sumdf,
   vars = desc_cols, summ = c("mean(x)", "median(x)", "sd(x)"),
   group = "grp", out = "csv",
-  file = "data/paper1/table1.csv"
+  file = "data/table1.csv"
 )

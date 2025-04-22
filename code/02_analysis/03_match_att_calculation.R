@@ -17,11 +17,11 @@ outcome_var <- "fam_ind"
 
 # Construct input and output directories for model and ATT results
 model_dir <- paste0(
-  "data/analysis/01_matching/02_matched/", treatment_var, "/",
+  "data/analysis/01_matching/02_matched/dbcg/",
   outcome_var, "/", Sys.Date(), "/"
 )
 cate_dir <- paste0(
-  "data/analysis/01_matching/03_cate/", treatment_var, "/",
+  "data/analysis/01_matching/03_cate/dbcg/",
   outcome_var, "/", Sys.Date(), "/"
 )
 

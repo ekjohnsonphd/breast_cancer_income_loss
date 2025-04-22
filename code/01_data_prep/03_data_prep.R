@@ -9,6 +9,7 @@ edu_coding <- edu$code5txt
 names(edu_coding) <- edu$hfaudd
 
 # Load region code data and convert municipality codes to character
+# Coding is provided by Statistiks Denmark
 load("data/supplemental_inputs/regions.RData")
 regs$kom <- as.character(regs$kom)
 

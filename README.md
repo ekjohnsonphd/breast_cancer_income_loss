@@ -4,6 +4,22 @@ This repository contains the full code used in the analysis of income loss follo
 
 ---
 
+## Setup and installation instructions
+This code is developed to be run on Danish register data. Register data access is governed by the Danish Health Authority and overseen by Statistics Denmark, and data usage agreements are required to access the raw data. If a user has access to all registers used in this project, they should be able to run all code in this project without additional processing.
+
+---
+
+## How to run
+With access to the register data provided by Statistics Denmark, this code can be run with the following steps:
+1. Save all raw register data in a directory with the name `data/rawdata`. 
+2. Run the `environment_setup.R` file, which will create the necessary directories and load all required packages.
+3. Run R scripts chronologically by the number in the folder and file names. 
+4. Data will be saved in versioned folders for matching and CATE estimates, and summary plots and tables are created in the results files.
+
+Depending on the years of data available and the server capacity, this code can take hours up to a half of a day to run to completion.
+
+---
+
 ## Repository Structure
 
 ### `code/01_data_prep/`
@@ -37,11 +53,19 @@ CATE estimation (e.g. censoring deaths vs. imputing years after death as years o
 
 ## Data
 
-This repository does not contain input data due to privacy restrictions. All analysis is based on Danish register data accessed through secure servers. 
-Output data from 01_write_cate_tables.R is included in the `data`folder.
+This repository does not contain input data due to privacy restrictions. All analysis is based on Danish register data accessed through secure servers. More information on accessing 
+Danish register data for research (given affiliation with a Danish research institution) can be found at https://www.dst.dk/da/TilSalg/data-til-forskning. 
+Output data from `03_writing_results/01_write_cate_tables.R` and `02_analysis/did.R` is included in the `data` folder.
+
+---
+
+## System requirements
+R version 4.4.3
+Required packages: arrow_16.1.0, lubridate_1.9.3, forcats_1.0.0, stringr_1.5.1, dplyr_1.1.4, purrr_1.0.2, readr_2.1.5, tidyr_1.3.1, tibble_3.2.1, ggplot2_3.5.1,
+tidyverse_2.0.0, data.table_1.15.4, MatchIt_4.7.1, cowplot_1.1.3
 
 ---
 
 ## Contact and further info
 For questions or collaboration, please contact Emily K. Johnson at [ejohnson@health.sdu.dk].
-All code in this repository was written by me. AI chatbots were used to help with linting, code review, and adding comments to the code.
+All code in this repository was written by me. AI chatbots were used to help with linting, code review, and improving comments to the code but they did not modify code directly.
