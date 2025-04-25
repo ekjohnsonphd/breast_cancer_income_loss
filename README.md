@@ -7,13 +7,22 @@ This repository contains the full code used in the analysis of income loss follo
 ## Setup and installation instructions
 This code is developed to be run on Danish register data. Register data access is governed by the Danish Health Authority and overseen by Statistics Denmark, and data usage agreements are required to access the raw data. If a user has access to all registers used in this project, they should be able to run all code in this project without additional processing.
 
+The following registers are required for this analysis:
+- The Danish Civil Registration Register
+- The National Patient Register
+- The Integrated Student Register
+- The National Income Register
+- The Danish Breast Cancer Register (provided by the Danish Breast Cancer Group)
+
+All registers except the Breast Cancer Register are provided for research use by Statistics Denmark.
+
 ---
 
 ## How to run
 With access to the register data provided by Statistics Denmark, this code can be run with the following steps:
-1. Save all raw register data in a directory with the name `data/rawdata`. 
+1. Save all raw register data in parquet format in a directory with the name `data/rawdata`. 
 2. Run the `environment_setup.R` file, which will create the necessary directories and load all required packages.
-3. Run R scripts chronologically by the number in the folder and file names. 
+3. Run R scripts in order by number in the folder and file names. 
 4. Data will be saved in versioned folders for matching and CATE estimates, and summary plots and tables are created in the results files.
 
 Depending on the years of data available and the server capacity, this code can take hours up to a half of a day to run to completion.
